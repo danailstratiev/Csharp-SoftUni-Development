@@ -75,8 +75,10 @@ Case
 
  --Problem 10.   First Letter
  Select Left(FirstName, 1) As FirstLetter From WizzardDeposits
- Group By FirstName
-
+ Where DepositGroup = 'Troll Chest'
+ Group By Left(FirstName, 1)
+ Order By FirstLetter
+ Go
 
  --Problem 11.	Average Interest 
 Select DepositGroup, IsDepositExpired, AVG(DepositInterest) As AverageInterest From WizzardDeposits
