@@ -242,18 +242,18 @@
         {
             var table = typeof(TEntity);
 
-            var columns = GetColumnNames(table);
+            string[] columns = GetEntityColumnNames(table);
 
             var tableName = GetTableName(table);
 
-            var fetchedRows = this.connection.FetchResultSet<TEntity>(tableName, columns.ToString());
+            var fetchedRows = this.connection.FetchResultSet<TEntity>(tableName, columns).ToArray();
 
             return fetchedRows; 
         }       
 
         private string GetTableName(Type tableType)
         {
-            var tableName = ((TableAttribute)Attribute.GetCustomAttribute(tableType, typeof(TableAttribute))).Name;
+            var tableName = ((TableAttribute)Attribute.GetCustomAttribute(tableType, typeof(TableAttribute)))?.Name;
 
             if (tableName == null)
             {
@@ -262,7 +262,7 @@
 
             return tableName; 
         }
-        private PropertyInfo[] GetColumnNames(Type table)
+        private string[] GetEntityColumnNames(Type table)
         {
             var tableName = GetTableName(table);
 
@@ -272,6 +272,7 @@
                 Where(x => dbColumns.Contains(x.Name) &&
                 !x.HasAttribute<NotMappedAttribute>() &&
                 AllowedSqlTypes.Contains(x.PropertyType)).
+                Select(x => x.Name).
                 ToArray();
 
             return columns;
@@ -289,10 +290,12 @@
          
         private Dictionary<Type, PropertyInfo> DiscoverDbSets()
         {
-            return this.GetType().
+            var dbSets = this.GetType().
                 GetProperties().
-                Where(x => x.GetType().GetGenericTypeDefinition() == typeof(DbSet<>)).
+                Where(x => x.PropertyType.GetGenericTypeDefinition() == typeof(DbSet<>)).
                 ToDictionary(x => x.PropertyType.GetGenericArguments().First(), v => v);
+
+            return dbSets;
         }
 
         internal static Type[] AllowedSqlTypes =
