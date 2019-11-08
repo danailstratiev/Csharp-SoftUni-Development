@@ -6,6 +6,6 @@ namespace P01_HospitalDatabase.Data
 {
    public class Config
     {
-        public const string ConnectionString = "Server=LAPTOP-7FT7CTPS\\SQLEXPRESS;Database=Hospital;Integrated Security=True;";
+        public const string ConnectionString = "Server=.\\SQLEXPRESS;Database=Hospital;Integrated Security=True;";
     }
 }
