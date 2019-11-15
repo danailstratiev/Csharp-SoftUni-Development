@@ -5,6 +5,7 @@
     using Data;
     using Models;
     using Generators;
+    using Z.EntityFramework.Plus;
 
     public class DbInitializer
     {

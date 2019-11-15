@@ -4,6 +4,7 @@
 
     using Models;
     using EntityConfiguration;
+    using Z.EntityFramework.Plus;
 
     public class BookShopContext : DbContext
     {
