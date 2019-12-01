@@ -2,6 +2,7 @@
 using CarDealer.Dtos.Import;
 using CarDealer.Dtos.Export;
 using CarDealer.Models;
+using System.Linq;
 
 namespace CarDealer
 {
@@ -20,6 +21,10 @@ namespace CarDealer
             this.CreateMap<ImportSaleDto, Sale>();
 
             this.CreateMap<Car, ExportCarsWithDistanceDto>();
+
+            this.CreateMap<Part, ExportCarPartDto>();
+            this.CreateMap<Car, ExportCarDto>()
+                .ForMember(x => x.Parts, y => y.MapFrom(x => x.PartCars.Select(pc => pc.Part)));
 
             this.CreateMap<Supplier, ExportLocalSuppliersDto>();
                 // If additional mapping is needed
