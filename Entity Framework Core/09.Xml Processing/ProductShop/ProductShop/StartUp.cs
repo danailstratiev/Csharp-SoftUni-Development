@@ -36,5 +36,23 @@ namespace ProductShop
 
             return $"Successfully imported {context.Users.Count()}"; 
         }
+
+        public static string ImportProducts(ProductShopContext context, string inputXml)
+        {
+            var xmlSerializer = new XmlSerializer(typeof(ImportProductDto[]),
+                                new XmlRootAttribute("Products"));
+
+            using (var reader = new StringReader(inputXml))
+            {
+                var productDtos = (ImportProductDto[])xmlSerializer.Deserialize(reader);
+
+                var products = Mapper.Map<Product[]>(productDtos);
+
+                context.Products.AddRange(products);
+                context.SaveChanges();
+            }
+
+            return $"Successfully imported {context.Products.Count()}";
+        }
     }
 }
