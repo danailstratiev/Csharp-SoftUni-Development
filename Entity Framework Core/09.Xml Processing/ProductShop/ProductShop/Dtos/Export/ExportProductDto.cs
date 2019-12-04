@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Text;
 using System.Xml.Serialization;
 
-namespace ProductShop.Dtos.Import
+namespace ProductShop.Dtos.Export
 {
     [XmlType("Product")]
-    public class ImportProductDto
+    public class ExportProductDto
     {
         [XmlElement("name")]
         public string Name { get; set; }
@@ -14,10 +14,7 @@ namespace ProductShop.Dtos.Import
         [XmlElement("price")]
         public decimal Price { get; set; }
 
-        [XmlElement("sellerId")]
-        public int SellerId { get; set; }
-
-        [XmlElement("buyerId")]
-        public int BuyerId { get; set; }
+        [XmlElement("buyer")]
+        public string BuyerName { get; set; }
     }
 }

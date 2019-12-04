@@ -1,10 +1,13 @@
 ﻿using AutoMapper;
 using ProductShop.Data;
+using ProductShop.Dtos.Export;
 using ProductShop.Dtos.Import;
 using ProductShop.Models;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Xml.Serialization;
 
 namespace ProductShop
@@ -17,9 +20,20 @@ namespace ProductShop
 
             using (var db = new ProductShopContext())
             {
+                // db.Database.EnsureDeleted();
+                // db.Database.EnsureCreated();
 
+                var inputXml = File.ReadAllText("./../../../Datasets/products.xml");
+
+                var result = ImportProducts(db, inputXml);
+
+                //////Console.WriteLine(GetSalesWithAppliedDiscount(db));
+
+                Console.WriteLine(result);
             }
         }
+
+        //Query 1. Import Users
         public static string ImportUsers(ProductShopContext context, string inputXml)
         {
             var xmlSerializer = new XmlSerializer(typeof(ImportUsersDto[]),
@@ -38,6 +52,7 @@ namespace ProductShop
             return $"Successfully imported {context.Users.Count()}"; 
         }
 
+        //Query 2. Import Products
         public static string ImportProducts(ProductShopContext context, string inputXml)
         {
             var xmlSerializer = new XmlSerializer(typeof(ImportProductDto[]),
@@ -56,6 +71,7 @@ namespace ProductShop
             return $"Successfully imported {context.Products.Count()}";
         }
 
+        //Query 3. Import Categories
         public static string ImportCategories(ProductShopContext context, string inputXml)
         {
             var xmlSerializer = new XmlSerializer(typeof(ImportCategoryDto[]),
@@ -77,6 +93,7 @@ namespace ProductShop
             return $"Successfully imported {context.Categories.Count()}";
         }
 
+        //Query 4. Import Categories and Products
         public static string ImportCategoryProducts(ProductShopContext context, string inputXml)
         {
             var xmlSerializer = new XmlSerializer(typeof(ImportCategoryProductDto[]),
@@ -110,6 +127,34 @@ namespace ProductShop
             }
 
             return $"Successfully imported {context.CategoryProducts.Count()}";
+        }
+
+        public static string GetProductsInRange(ProductShopContext context)
+        {
+            var sb = new StringBuilder();
+
+            var xmlSerializer = new XmlSerializer(typeof(List<ExportProductDto>),
+                                new XmlRootAttribute("Products"));
+
+            var products = context.Products.Where(x => x.Price >= 500 && x.Price <= 1000)
+                                  .Select(x => new ExportProductDto
+                                  {
+                                      Name = x.Name,
+                                      Price = x.Price,
+                                      BuyerName = $"{x.Buyer.FirstName} {x.Buyer.LastName}"
+                                  }).OrderBy(p => p.Price)
+                                  .Take(10)  
+                                  .ToList();
+
+            var namespaces = new XmlSerializerNamespaces();
+            namespaces.Add(string.Empty, string.Empty);
+
+            using (var writer = new StringWriter(sb))
+            {
+                xmlSerializer.Serialize(writer, products, namespaces);
+            }
+
+            return sb.ToString().TrimEnd();
         }
     }
 }
