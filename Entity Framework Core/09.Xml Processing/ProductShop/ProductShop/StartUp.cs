@@ -2,6 +2,7 @@
 using ProductShop.Data;
 using ProductShop.Dtos.Import;
 using ProductShop.Models;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Serialization;
@@ -74,6 +75,41 @@ namespace ProductShop
             }
             
             return $"Successfully imported {context.Categories.Count()}";
+        }
+
+        public static string ImportCategoryProducts(ProductShopContext context, string inputXml)
+        {
+            var xmlSerializer = new XmlSerializer(typeof(ImportCategoryProductDto[]),
+                                new XmlRootAttribute("CategoryProducts"));
+            var categoryProducts = new List<CategoryProduct>();
+
+            using (var reader = new StringReader(inputXml))
+            {
+                var categoryProductsFromDto = (ImportCategoryProductDto[])xmlSerializer.Deserialize(reader);
+
+                var categoryIds = context.Categories.Select(c => c.Id).ToList();
+                var productIds = context.Products.Select(p => p.Id).ToList();
+
+                foreach (var dto in categoryProductsFromDto)
+                {
+                    if (categoryIds.Any(c => c == dto.CategoryId &&
+                        productIds.Any(p => p == dto.ProductId)))
+                    {
+                        var categoryProduct = new CategoryProduct
+                        {
+                            CategoryId = dto.CategoryId,
+                            ProductId = dto.ProductId
+                        };
+
+                        categoryProducts.Add(categoryProduct);
+                    }
+                }
+
+                context.CategoryProducts.AddRange(categoryProducts);
+                context.SaveChanges();
+            }
+
+            return $"Successfully imported {context.CategoryProducts.Count()}";
         }
     }
 }
