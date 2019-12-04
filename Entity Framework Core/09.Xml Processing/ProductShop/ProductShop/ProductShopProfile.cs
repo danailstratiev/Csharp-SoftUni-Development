@@ -16,6 +16,11 @@ namespace ProductShop
             this.CreateMap<ImportCategoryDto, Category>();
 
             this.CreateMap<Product, ExportProductDto>();
+
+            this.CreateMap<Product, ExportProductMiniDto>();
+
+            this.CreateMap<User, ExportUserDto>()
+                .ForMember(x => x.ProductsSold, y => y.MapFrom(x => x.ProductsSold));
         }
     }
 }
