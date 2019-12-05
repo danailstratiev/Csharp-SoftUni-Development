@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace Cinema.Data.Models
+namespace Cinema.DataProcessor.ImportDto
 {
-    public class Hall
-    {       
-
+    public class HallSeatsImportDto
+    {
         [Key]
         public int Id { get; set; }
 
@@ -16,11 +15,10 @@ namespace Cinema.Data.Models
         public string Name { get; set; }
 
         public bool Is4Dx { get; set; }
-        
-        public bool Is3D  { get; set; }
 
-        public IEnumerable<Projection> Projections { get; set; } = new HashSet<Projection>();
+        public bool Is3D { get; set; }
 
-        public IEnumerable<Seat> Seats { get; set; } = new HashSet<Seat>();
+        [Range(1, int.MaxValue)]
+        public int Seats { get; set; }
     }
 }
