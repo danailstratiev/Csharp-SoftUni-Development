@@ -3,8 +3,12 @@
     using System;
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
+    using System.Globalization;
+    using System.IO;
     using System.Linq;
     using System.Text;
+    using System.Xml.Serialization;
+    using AutoMapper;
     using Cinema.Data.Models;
     using Cinema.DataProcessor.ImportDto;
     using Data;
@@ -48,7 +52,7 @@
 
         private static bool IsValid(object obj)
         {
-            var validator = new ValidationContext(obj);
+            var validator = new System.ComponentModel.DataAnnotations.ValidationContext(obj);
             var validationResult = new List<ValidationResult>();
 
             var result = Validator.TryValidateObject(obj, validator, validationResult, true);
@@ -122,6 +126,53 @@
 
         public static string ImportProjections(CinemaContext context, string xmlString)
         {
+            var xmlSerializer = new XmlSerializer(typeof(List<ImportProjectionDto>),
+                                new XmlRootAttribute("Projections"));
+
+            var sb = new StringBuilder();
+            var projections = new List<Projection>();
+            var hallIds = context.Halls.Select(h => h.Id).ToList();
+            var movieIds = context.Movies.Select(m => m.Id).ToList();
+
+            using (var reader = new StringReader(xmlString))
+            {
+                var projectionsFromDto = (List<ImportProjectionDto>)xmlSerializer.Deserialize(reader);
+
+                foreach (var dto in projectionsFromDto)
+                {
+                    if (IsValid(dto))
+                    {
+                        if (hallIds.Any(x => x == dto.HallId) &&
+                            movieIds.Any(x => x == dto.MovieId))
+                        {
+                            var currentHall = context.Halls.FirstOrDefault(x => x.Id == dto.HallId);
+                            var currentMovie = context.Movies.FirstOrDefault(x => x.Id == dto.MovieId);
+                            
+                            var projection = new Projection
+                            {
+                                HallId = dto.HallId,
+                                Hall = currentHall,
+                                MovieId = dto.MovieId,
+                                Movie = currentMovie,
+                                DateTime = DateTime.Parse(dto.DateTime)
+                            };
+
+                            projections.Add(projection);
+                            sb.AppendLine($"Successfully imported projection {projection.Movie.Title} on {projection.DateTime.ToString("MM/dd/yyyy", CultureInfo.InvariantCulture)}!");
+                        }
+                        else
+                        {
+                            sb.AppendLine(ErrorMessage);
+                        }
+                    }
+                }
+
+                context.Projections.AddRange(projections);
+                context.SaveChanges();
+
+                return sb.ToString().TrimEnd();
+            }
+
             throw new NotImplementedException();
         }
 
