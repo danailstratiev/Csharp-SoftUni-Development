@@ -1,8 +1,12 @@
 ﻿namespace Cinema.DataProcessor
 {
     using System;
-
+    using System.Collections.Generic;
+    using System.ComponentModel.DataAnnotations;
+    using System.Text;
+    using Cinema.Data.Models;
     using Data;
+    using Newtonsoft.Json;
 
     public class Deserializer
     {
@@ -18,7 +22,35 @@
 
         public static string ImportMovies(CinemaContext context, string jsonString)
         {
-            throw new NotImplementedException();
+            var movies = JsonConvert.DeserializeObject<List<Movie>>(jsonString);
+            var sb = new StringBuilder();
+
+            foreach (var movie in movies)
+            {
+                if (IsValid(movie))
+                {
+                    context.Movies.Add(movie);
+                    sb.AppendLine(string.Format(SuccessfulImportMovie, movie.Title,
+                                         movie.Genre.ToString(), movie.Rating.ToString("f2")));
+                }
+                else
+                {
+                    sb.AppendLine(ErrorMessage);
+                }
+            }
+
+            context.SaveChanges();
+
+            return sb.ToString().TrimEnd();
+        }
+
+        private static bool IsValid(object obj)
+        {
+            var validator = new ValidationContext(obj);
+            var validationResult = new List<ValidationResult>();
+
+            var result = Validator.TryValidateObject(obj, validator, validationResult, true);
+            return result;
         }
 
         public static string ImportHallSeats(CinemaContext context, string jsonString)
