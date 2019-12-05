@@ -147,7 +147,7 @@
                         {
                             var currentHall = context.Halls.FirstOrDefault(x => x.Id == dto.HallId);
                             var currentMovie = context.Movies.FirstOrDefault(x => x.Id == dto.MovieId);
-                            
+
                             var projection = new Projection
                             {
                                 HallId = dto.HallId,
@@ -178,7 +178,64 @@
 
         public static string ImportCustomerTickets(CinemaContext context, string xmlString)
         {
-            throw new NotImplementedException();
+            var xmlSerializer = new XmlSerializer(typeof(List<ImportCustomerDto>),
+                                new XmlRootAttribute("Customers"));
+            var sb = new StringBuilder();
+
+            using (var reader = new StringReader(xmlString))
+            {
+                var customerDtos = (List<ImportCustomerDto>)xmlSerializer.Deserialize(reader);
+
+                foreach (var dto in customerDtos)
+                {
+                    if (IsValid(dto))
+                    {
+                        var customer = new Customer
+                        {
+                            FirstName = dto.FirstName,
+                            LastName = dto.LastName,
+                            Age = dto.Age,
+                            Balance = dto.Balance
+                        };
+
+                        context.Customers.Add(customer);
+
+                        AddTicketsInDatabase(context, customer.Id, dto.Tickets);
+
+                        sb.AppendLine($"Successfully imported customer {customer.FirstName} {customer.LastName} with bought tickets: {customer.Tickets.Count()}!");
+                    }
+                    else
+                    {
+                        sb.AppendLine(ErrorMessage);
+                    }
+                }
+            }
+
+            context.SaveChanges();           
+            return sb.ToString().TrimEnd();
+        }
+
+        private static void AddTicketsInDatabase(CinemaContext context, int id, List<ImportTicketDto> tickets)
+        {
+            var validTickets = new List<Ticket>();
+
+            foreach (var ticket in tickets)
+            {
+                if (IsValid(ticket))
+                {
+                    var validTicket = new Ticket
+                    {
+                        CustomerId = id,
+                        Price = ticket.Price,
+                        ProjectionId = ticket.ProjectionId
+                    };
+
+                    validTickets.Add(validTicket);
+                }
+            }
+
+            context.Tickets.AddRange(validTickets);
+            context.SaveChanges();
         }
     }
 }
