@@ -2,7 +2,12 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
+    using System.IO;
     using System.Linq;
+    using System.Text;
+    using System.Xml.Serialization;
+    using Cinema.Data.Models;
     using Cinema.DataProcessor.ExportDto;
     using Data;
     using Newtonsoft.Json;
@@ -44,7 +49,32 @@
 
         public static string ExportTopCustomers(CinemaContext context, int age)
         {
-            throw new NotImplementedException();
+            var xmlSerializer = new XmlSerializer(typeof(List<ExportCustomerDto>),
+                                new XmlRootAttribute("Customers"));
+
+            var sb = new StringBuilder();
+
+            var customers = context.Customers.Where(c => c.Age >= age)
+                                   .Select(c => new ExportCustomerDto
+                                   {
+                                       FirstName = c.FirstName,
+                                       LastName = c.LastName,
+                                       SpentMoney = c.Tickets.Sum(t => t.Price).ToString("f2"),
+                                       SpentTime = TimeSpan.FromMilliseconds(c.Tickets.Sum(t => t.Projection.Movie.Duration.TotalMilliseconds)).ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture)
+                                   })
+                                   .OrderByDescending(x => decimal.Parse(x.SpentMoney))
+                                   .Take(10)
+                                   .ToList();
+            var namespaces = new XmlSerializerNamespaces();
+
+            namespaces.Add(string.Empty, string.Empty);
+
+            using (var writer = new StringWriter(sb))
+            {
+                xmlSerializer.Serialize(writer, customers, namespaces);
+            }
+
+            return sb.ToString().TrimEnd();
         }
     }
 }
