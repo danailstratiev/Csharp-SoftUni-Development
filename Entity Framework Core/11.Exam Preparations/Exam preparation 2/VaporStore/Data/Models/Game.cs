@@ -11,7 +11,10 @@ namespace VaporStore.Data.Models
         public int Id { get; set; }
 
         [Required]
-        [Range(0, 1000000000)]
+        public string Name { get; set; }
+
+        [Required]
+        [Range(typeof(decimal), "0.00", "1000000000000000")]
         public decimal Price { get; set; }
 
         public DateTime ReleaseDate { get; set; }

@@ -11,10 +11,11 @@ namespace VaporStore.Data.Models
         public int Id { get; set; }
 
         [Required]
-        [Range(3, 20)]
+        [MinLength(3), MaxLength(20)]
         public string Username { get; set; }
 
         [Required]
+        [RegularExpression("^[A-Z][a-z]+ [A-Z][a-z]+$")]
         public string FullName { get; set; }
 
         [Required]
