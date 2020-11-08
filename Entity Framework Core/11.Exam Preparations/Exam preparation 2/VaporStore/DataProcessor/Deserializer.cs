@@ -52,9 +52,85 @@
                         Tag = tag
                     });
                 }
+
+                games.Add(game);
+                sb.AppendLine($"Added {game.Name} ({game.Genre.Name}) with {game.GameTags.Count} tags");
             }
 
-            return null;
+            context.Games.AddRange(games);
+            context.SaveChanges();
+
+            return sb.ToString().TrimEnd();
+        }        
+
+        public static string ImportUsers(VaporStoreDbContext context, string jsonString)
+		{
+            var usersDto = JsonConvert.DeserializeObject<ImportUserDto[]>(jsonString);
+
+            var sb = new StringBuilder();
+            var users = new List<User>();
+
+            foreach (var userDto in usersDto)
+            {
+                if (!IsValid(userDto) || !userDto.Cards.All(IsValid))
+                {
+                    sb.AppendLine("Invalid Data");
+                    continue;
+                }
+
+                bool isValidEnum = true;
+
+                foreach (var cardDto in userDto.Cards)
+                {
+                    var cardType = Enum.TryParse<CardType>(cardDto.Type, out CardType result);
+
+                    if (!cardType)
+                    {
+                        isValidEnum = false;
+                        break;
+                    }
+                }
+
+                if (!isValidEnum)
+                {
+                    sb.AppendLine("Invalid Data");
+                    continue;
+                }
+
+                var user = new User
+                {
+                    FullName = userDto.FullName,
+                    Username = userDto.Username,
+                    Age = userDto.Age,
+                    Email = userDto.Email
+                };
+
+
+                foreach (var cardDto in userDto.Cards)
+                {
+                    var cardType = Enum.TryParse<CardType>(cardDto.Type, out CardType result);
+
+                    user.Cards.Add(new Card
+                    {
+                        Number = cardDto.Number,
+                        Cvc = cardDto.Cvc,
+                        Type = result
+                    });
+                }
+
+                users.Add(user);
+                sb.AppendLine($"Imported {user.Username} with {user.Cards.Count}");
+            }
+
+            context.Users.AddRange(users);
+            context.SaveChanges();
+
+            return sb.ToString().TrimEnd();
+        }
+
+        public static string ImportPurchases(VaporStoreDbContext context, string xmlString)
+		{
+			throw new NotImplementedException();
 		}
 
         private static Tag GetTag(VaporStoreDbContext context, string currentTag)
@@ -119,15 +195,5 @@
             var result = Validator.TryValidateObject(obj, validator, validationResult, true);
             return result;
         }
-
-        public static string ImportUsers(VaporStoreDbContext context, string jsonString)
-		{
-			throw new NotImplementedException();
-		}
-
-		public static string ImportPurchases(VaporStoreDbContext context, string xmlString)
-		{
-			throw new NotImplementedException();
-		}
-	}
+    }
 }
