@@ -4,8 +4,10 @@
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
     using System.Globalization;
+    using System.IO;
     using System.Linq;
     using System.Text;
+    using System.Xml.Serialization;
     using Data;
     using Newtonsoft.Json;
     using VaporStore.Data.Models;
@@ -130,8 +132,56 @@
 
         public static string ImportPurchases(VaporStoreDbContext context, string xmlString)
 		{
-			throw new NotImplementedException();
-		}
+            var xmlSerializer = new XmlSerializer(typeof(ImportPurchaseDto[]), new XmlRootAttribute("Purchases"));
+            var purchasesDto = (ImportPurchaseDto[])xmlSerializer.Deserialize(new StringReader(xmlString));
+            var sb = new StringBuilder();
+            var purchases = new List<Purchase>();
+
+            foreach (var purchaseDto in purchasesDto)
+            {
+                if (!IsValid(purchaseDto))
+                {
+                    sb.AppendLine("Invalid Data");
+                    continue;
+                }
+
+                var isValidEnum = Enum.TryParse<PurchaseType>(purchaseDto.Type, out
+                    PurchaseType purchaseType);
+
+                if (!isValidEnum)
+                {
+                    sb.AppendLine("Invalid Data");
+                    continue;
+                }
+
+                var game = context.Games.FirstOrDefault(x => x.Name == purchaseDto.Title);
+
+                var card = context.Cards.FirstOrDefault(x => x.Number == purchaseDto.Card);
+
+                if (game == null || card == null)
+                {
+                    sb.AppendLine("Invalid Data");
+                    continue;
+                }
+
+                var purchase = new Purchase
+                {
+                    Type = purchaseType,
+                    Date = DateTime.ParseExact(purchaseDto.Date, "dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
+                    ProductKey = purchaseDto.Key,
+                    Game = game,
+                    Card = card
+                };
+
+                purchases.Add(purchase);
+                sb.AppendLine($"Imported {purchase.Game.Name} for {purchase.Card.User.Username}");
+            }
+
+            context.Purchases.AddRange(purchases);
+            context.SaveChanges();
+
+            return sb.ToString().TrimEnd();
+        }
 
         private static Tag GetTag(VaporStoreDbContext context, string currentTag)
         {
