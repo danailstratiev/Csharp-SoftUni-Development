@@ -1,9 +1,16 @@
 ﻿namespace VaporStore.DataProcessor
 {
 	using System;
+    using System.Globalization;
+    using System.IO;
     using System.Linq;
+    using System.Text;
+    using System.Xml;
+    using System.Xml.Serialization;
     using Data;
     using Newtonsoft.Json;
+    using VaporStore.Data.Models;
+    using VaporStore.DataProcessor.ExportDtops;
 
     public static class Serializer
 	{
@@ -33,14 +40,54 @@
                                        .ThenBy(g => g.Id)
                                        .ToArray();
 
-            var jsonResult = JsonConvert.SerializeObject(genres, Formatting.Indented);
+            var jsonResult = JsonConvert.SerializeObject(genres, Newtonsoft.Json.Formatting.Indented);
 
             return jsonResult;
 		}
 
 		public static string ExportUserPurchasesByType(VaporStoreDbContext context, string storeType)
 		{
-			throw new NotImplementedException();
+            var purchaseType = Enum.Parse<PurchaseType>(storeType);
+
+            var users = context.Users
+                .Where(p => p.Cards.SelectMany(x => x.Purchases).Any(t => t.Type == purchaseType))
+                .Select(x => new ExportUserDto
+                 {
+                    Username = x.Username,
+                    Purchases = x.Cards.SelectMany(p => p.Purchases).Select(p => new ExportPurchaseDto
+                    {
+                        Card = p.Card.Number,
+                        Cvc = p.Card.Cvc,
+                        Date = p.Date.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
+                        Game = new ExportGameDto
+                        {
+                            Genre = p.Game.Genre.Name,
+                            Title = p.Game.Name,
+                            Price = p.Game.Price
+                        }
+                    })
+                    .OrderBy(d => d .Date)
+                    .ToArray(),
+                    TotalSpent = x.Cards.SelectMany(p => p.Purchases)
+                    .Where(t => t.Type == purchaseType)
+                    .Sum(p => p.Game.Price)
+                 })
+                .OrderByDescending(t => t.TotalSpent)
+                .ThenBy(u => u.Username)
+                .ToArray();
+
+            var xmlSerializer = new XmlSerializer(typeof(ExportUserDto[]), new XmlRootAttribute("Users"));
+            var namespaces = new XmlSerializerNamespaces(new[]
+            {
+                XmlQualifiedName.Empty
+            });
+
+            var sb = new StringBuilder();
+            xmlSerializer.Serialize(new StringWriter(sb), users, namespaces);
+
+            var result = sb.ToString().TrimEnd();
+
+            return result;
 		}
 	}
 }
